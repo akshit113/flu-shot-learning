@@ -4,7 +4,11 @@ import warnings
 import numpy as np
 from pandas import read_csv, concat, DataFrame, get_dummies
 from sklearn.impute import SimpleImputer
+from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
+from sklearn.multiclass import OneVsRestClassifier
+from sklearn.preprocessing import MultiLabelBinarizer
+from xgboost import XGBClassifier
 
 np.set_printoptions(threshold=sys.maxsize)
 
@@ -109,6 +113,47 @@ def split_dataset(df, test_size, seed):
     return x_train, x_test, y_train, y_test, train_ids, test_ids
 
 
+def fit_model(X_train, Y_train, X_test, Y_test):
+    clf = OneVsRestClassifier(XGBClassifier(n_jobs=-1, max_depth=4, verbosity=1))
+
+    # You may need to use MultiLabelBinarizer to encode your variables from arrays [[x, y, z]] to a multilabel
+    # format before training.
+    mlb = MultiLabelBinarizer()
+    Y_train = mlb.fit_transform(Y_train)
+
+    clf.fit(X_train, Y_train)
+
+    # y_pred = clf.predict(X_test)
+
+    # print(Y_test)
+
+    return clf
+
+
+def make_predictions(model, x_test):
+    """This function makes predictions using the model on the unseen test dataset
+    :param y_test: test labels
+    :param model: Sequential model
+    :param x_test: unseen test dataset
+    :return: predictions in the binary numpy array format
+    """
+
+    print(x_test.shape)
+    predictions = model.predict_proba(x_test)
+    # labels = (np.where(predictions < 0.5, 0, 1)).flatten()
+    h1n1_preds = predictions[:, 0].tolist()
+    seasonal_preds = predictions[:, 1].tolist()
+    print(len(h1n1_preds))
+    return model, h1n1_preds, seasonal_preds
+
+
+def get_scores(h1n1_true, h1n1_preds, seasonal_true, seasonal_preds):
+    h1n1_score = roc_auc_score(np.array(h1n1_true), np.array(h1n1_preds))
+    seasonal_score = roc_auc_score(np.array(seasonal_true), np.array(seasonal_preds))
+    average_score = (h1n1_score + seasonal_score) / 2
+    return average_score
+
+
 if __name__ == '__main__':
     df = import_data(features='Datasets/training_set_features.csv',
                      labels='Datasets/training_set_labels.csv')
@@ -120,43 +165,19 @@ if __name__ == '__main__':
     ohe_cols = cols[1:36]
     print(ohe_cols)
     df = one_hot_encode(df, colnames=ohe_cols)
-    print(df)
+
 
     # df = undersample(df)
     x_train, x_test, y_train, y_test, train_ids, test_ids = split_dataset(df, test_size=0.2, seed=42)
 
     X_train, Y_train = np.array(x_train), np.array(y_train)
-    # classifier = get_model(X.shape[1], 1, magic='sigmoid')
-    # start = datetime.now()
-    # batch = 1024
-    # epochs = 5  # 100
-    #
-    # test_acc, test_loss = fit_and_evaluate(classifier, X_train, Y_train, x_test, y_test, batch_size=batch,
-    #                                        epochs=epochs)
-    # end = datetime.now()
-    # total_seconds = (end - start).seconds
-    # minute, seconds = divmod(total_seconds, 60)
-    # print(f'\nTraining Time: {minute}:{seconds}')
-    # avg = total_seconds / epochs
-    # print(f'\nAverage time per epoch: {avg}')
-    #
-    # print(test_acc, test_loss)
-    #
-    # y_hat, model = make_predictions(classifier, x_test)
-    #
-    # roc_auc_score = get_metrics(y_test, y_hat, 'roc_auc_score', 'macro')
-    # print(roc_auc_score)
-    #
-    # fname = 'nn_logs.xlsx'
-    # export_flag = write_logs(fname, roc_auc_score)
-    # export(model)
-    #
-    # if export_flag:
-    #     export(model)
-    #
-    # jcard_score = get_metrics(y_test, y_hat, 'jaccard_score', 'binary')
-    # f1 = get_metrics(y_test, y_hat, 'f1_score', 'binary')
-    # precision = get_metrics(y_test, y_hat, 'precision_score', 'binary')
-    # recall = get_metrics(y_test, y_hat, 'recall_score', 'binary')
+    X_test, Y_test = np.array(x_test), np.array(y_test)
+
+    clf = fit_model(X_train, Y_train, X_test, Y_test)
+
+    model, h1n1_preds, seasonal_preds = make_predictions(clf, X_test)
+    h1n1_true, seasonal_true = (Y_test[:, 0]).tolist(), Y_test[:, 1].tolist()
+    score = get_scores(h1n1_true, h1n1_preds, seasonal_true, seasonal_preds)
+    print(score)
 
     print('Program execution complete!')
