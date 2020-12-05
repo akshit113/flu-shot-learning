@@ -105,27 +105,24 @@ def fit_model(X_train, Y_train, X_test, Y_test):
     clf = OneVsRestClassifier(XGBClassifier(n_jobs=-1,
                                             silent=0,
                                             verbose=True,
+                                            # eval_metric = ["auc","error"],
                                             objective='multi:softmax',
+                                            # nclasses=2,
                                             num_class=2,
                                             learning_rate=0.05,
-                                            colsample_bylevel=0.5,
-                                            colsample_bynode=0.5,
-                                            colsample_bytree=0.5,
+                                            colsample_bylevel=0.25,
+                                            colsample_bynode=0.25,
+                                            colsample_bytree=0.25,
                                             min_child_weight=1,
                                             max_depth=10,
                                             subsample=0.8,
                                             n_estimators=50))
 
-    # You may need to use MultiLabelBinarizer to encode your variables from arrays [[x, y, z]] to a multilabel
-    # format before training.
     mlb = MultiLabelBinarizer()
     Y_train = mlb.fit_transform(Y_train)
 
     clf.fit(X_train, Y_train)
 
-    # y_pred = clf.predict(X_test)
-
-    # print(Y_test)
 
     return clf
 
