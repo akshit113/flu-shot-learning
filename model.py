@@ -101,19 +101,17 @@ def split_dataset(df, test_size, seed):
     print(y_test.shape)
     return x_train, x_test, y_train, y_test, train_ids, test_ids
 
-
 def fit_model(X_train, Y_train, X_test, Y_test):
     clf = OneVsRestClassifier(XGBClassifier(n_jobs=-1,
                                             silent=0,
                                             verbose=True,
-                                            # eval_metric = ["auc","error"],
                                             objective='multi:softmax',
-                                            # nclasses=2,
                                             num_class=2,
                                             learning_rate=0.05,
-                                            colsample_bylevel=0.6,
-                                            colsample_bynode=0.6,
-                                            colsample_bytree=0.6,
+                                            colsample_bylevel=0.5,
+                                            colsample_bynode=0.5,
+                                            colsample_bytree=0.5,
+                                            min_child_weight=1,
                                             max_depth=10,
                                             subsample=0.8,
                                             n_estimators=50))
@@ -130,6 +128,7 @@ def fit_model(X_train, Y_train, X_test, Y_test):
     # print(Y_test)
 
     return clf
+
 
 def make_predictions(model, x_test):
     """This function makes predictions using the model on the unseen test dataset
