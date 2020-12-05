@@ -5,7 +5,7 @@ import numpy as np
 from pandas import read_csv, concat, DataFrame, get_dummies
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import roc_auc_score
-from sklearn.model_selection import train_test_split, GridSearchCV, StratifiedKFold, RandomizedSearchCV
+from sklearn.model_selection import train_test_split
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.preprocessing import MultiLabelBinarizer
 from xgboost import XGBClassifier
@@ -110,7 +110,7 @@ def fit_model(X_train, Y_train, X_test, Y_test):
                                             objective='multi:softmax',
                                             # nclasses=2,
                                             num_class=2,
-                                            learning_rate=0.2,
+                                            learning_rate=0.1,
                                             max_depth=10,
                                             subsample=0.8,
                                             n_estimators=100))
@@ -127,6 +127,7 @@ def fit_model(X_train, Y_train, X_test, Y_test):
     # print(Y_test)
 
     return clf
+
 
 def make_predictions(model, x_test):
     """This function makes predictions using the model on the unseen test dataset
