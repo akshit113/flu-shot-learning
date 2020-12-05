@@ -1,6 +1,5 @@
 import sys
 import warnings
-
 import numpy as np
 from pandas import read_csv, concat, DataFrame, get_dummies
 from sklearn.impute import SimpleImputer
@@ -10,21 +9,11 @@ from sklearn.multiclass import OneVsRestClassifier
 from sklearn.preprocessing import MultiLabelBinarizer
 from xgboost import XGBClassifier
 
+
 np.set_printoptions(threshold=sys.maxsize)
-
-
-def fxn():
-    warnings.warn("deprecated", DeprecationWarning)
-
-
-with warnings.catch_warnings():
-    warnings.simplefilter("ignore")
-    fxn()
-
-import sys
-import numpy
-
-numpy.set_printoptions(threshold=sys.maxsize)
+warnings.simplefilter('always')
+warnings. filterwarnings("ignore")
+np.set_printoptions(threshold=sys.maxsize)
 
 
 def import_data(features, labels, train=True):
@@ -114,7 +103,12 @@ def split_dataset(df, test_size, seed):
 
 
 def fit_model(X_train, Y_train, X_test, Y_test):
-    clf = OneVsRestClassifier(XGBClassifier(n_jobs=-1, max_depth=4, verbosity=1))
+    clf = OneVsRestClassifier(XGBClassifier(n_jobs=-1,
+                                            silent=0,
+                                            verbosity=1,
+
+                                            learning_rate=0.2,
+                                            max_depth=10))
 
     # You may need to use MultiLabelBinarizer to encode your variables from arrays [[x, y, z]] to a multilabel
     # format before training.
@@ -128,7 +122,6 @@ def fit_model(X_train, Y_train, X_test, Y_test):
     # print(Y_test)
 
     return clf
-
 
 def make_predictions(model, x_test):
     """This function makes predictions using the model on the unseen test dataset
@@ -165,7 +158,6 @@ if __name__ == '__main__':
     ohe_cols = cols[1:36]
     print(ohe_cols)
     df = one_hot_encode(df, colnames=ohe_cols)
-
 
     # df = undersample(df)
     x_train, x_test, y_train, y_test, train_ids, test_ids = split_dataset(df, test_size=0.2, seed=42)
