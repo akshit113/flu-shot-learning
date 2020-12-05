@@ -1,18 +1,18 @@
 import sys
 import warnings
+
 import numpy as np
 from pandas import read_csv, concat, DataFrame, get_dummies
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import roc_auc_score
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV, StratifiedKFold, RandomizedSearchCV
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.preprocessing import MultiLabelBinarizer
 from xgboost import XGBClassifier
 
-
 np.set_printoptions(threshold=sys.maxsize)
 warnings.simplefilter('always')
-warnings. filterwarnings("ignore")
+warnings.filterwarnings("ignore")
 np.set_printoptions(threshold=sys.maxsize)
 
 
@@ -105,10 +105,15 @@ def split_dataset(df, test_size, seed):
 def fit_model(X_train, Y_train, X_test, Y_test):
     clf = OneVsRestClassifier(XGBClassifier(n_jobs=-1,
                                             silent=0,
-                                            verbosity=1,
-
+                                            verbose=True,
+                                            # eval_metric = ["auc","error"],
+                                            objective='multi:softmax',
+                                            # nclasses=2,
+                                            num_class=2,
                                             learning_rate=0.2,
-                                            max_depth=10))
+                                            max_depth=10,
+                                            subsample=0.8,
+                                            n_estimators=100))
 
     # You may need to use MultiLabelBinarizer to encode your variables from arrays [[x, y, z]] to a multilabel
     # format before training.
