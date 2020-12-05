@@ -110,10 +110,13 @@ def fit_model(X_train, Y_train, X_test, Y_test):
                                             objective='multi:softmax',
                                             # nclasses=2,
                                             num_class=2,
-                                            learning_rate=0.1,
+                                            learning_rate=0.05,
+                                            colsample_bylevel=0.6,
+                                            colsample_bynode=0.6,
+                                            colsample_bytree=0.6,
                                             max_depth=10,
                                             subsample=0.8,
-                                            n_estimators=100))
+                                            n_estimators=50))
 
     # You may need to use MultiLabelBinarizer to encode your variables from arrays [[x, y, z]] to a multilabel
     # format before training.
@@ -127,7 +130,6 @@ def fit_model(X_train, Y_train, X_test, Y_test):
     # print(Y_test)
 
     return clf
-
 
 def make_predictions(model, x_test):
     """This function makes predictions using the model on the unseen test dataset
@@ -166,7 +168,7 @@ if __name__ == '__main__':
     df = one_hot_encode(df, colnames=ohe_cols)
 
     # df = undersample(df)
-    x_train, x_test, y_train, y_test, train_ids, test_ids = split_dataset(df, test_size=0.2, seed=42)
+    x_train, x_test, y_train, y_test, train_ids, test_ids = split_dataset(df, test_size=0.3, seed=42)
 
     X_train, Y_train = np.array(x_train), np.array(y_train)
     X_test, Y_test = np.array(x_test), np.array(y_test)
@@ -177,5 +179,6 @@ if __name__ == '__main__':
     h1n1_true, seasonal_true = (Y_test[:, 0]).tolist(), Y_test[:, 1].tolist()
     score = get_scores(h1n1_true, h1n1_preds, seasonal_true, seasonal_preds)
     print(score)
+
 
     print('Program execution complete!')
