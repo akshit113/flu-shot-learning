@@ -95,42 +95,21 @@ def split_dataset(df, test_size, seed):
     test_ids = x_test['respondent_id'].copy()
     x_train.drop(['respondent_id'], axis=1, inplace=True)
     x_test.drop(['respondent_id'], axis=1, inplace=True)
-    print(x_train.shape)
-    print(x_test.shape)
-    print(y_train.shape)
-    print(y_test.shape)
+    # print(x_train.shape)
+    # print(x_test.shape)
+    # print(y_train.shape)
+    # print(y_test.shape)
     return x_train, x_test, y_train, y_test, train_ids, test_ids
 
 
 def fit_model(X_train, Y_train):
-    clf = OneVsRestClassifier(XGBClassifier(n_jobs=-1,
-                                            silent=0,
-                                            verbose=True,
-                                            # eval_metric = ["auc","error"],
-                                            objective='multi:softprob',
-                                            # nclasses=2,
-                                            num_class=2,
-                                            learning_rate=0.05,
-                                            colsample_bylevel=0.20,
-                                            colsample_bynode=0.20,
-                                            colsample_bytree=0.20,
-                                            min_child_weight=5,
-                                            max_depth=12,
-                                            subsample=1,
-                                            n_estimators=100))
-
-    # You may need to use MultiLabelBinarizer to encode your variables from arrays [[x, y, z]] to a multilabel
-    # format before training.
-    mlb = MultiLabelBinarizer()
-    Y_train = mlb.fit_transform(Y_train)
-
+    clf = OneVsRestClassifier(XGBClassifier())
+    Y_train = Y_train.astype('int')
     clf.fit(X_train, Y_train)
-
-    # y_pred = clf.predict(X_test)
-
-    # print(Y_test)
-
+    print('')
     return clf
+
+
 
 
 def make_predictions(model, x_test):
@@ -140,13 +119,11 @@ def make_predictions(model, x_test):
     :param x_test: unseen test dataset
     :return: predictions in the binary numpy array format
     """
-
-    print(x_test.shape)
     predictions = model.predict_proba(x_test)
     # labels = (np.where(predictions < 0.5, 0, 1)).flatten()
     h1n1_preds = predictions[:, 0].tolist()
     seasonal_preds = predictions[:, 1].tolist()
-    print(len(h1n1_preds))
+
     return model, h1n1_preds, seasonal_preds
 
 
@@ -155,6 +132,7 @@ def get_scores(h1n1_true, h1n1_preds, seasonal_true, seasonal_preds):
     seasonal_score = roc_auc_score(np.array(seasonal_true), np.array(seasonal_preds))
     average_score = (h1n1_score + seasonal_score) / 2
     return average_score
+
 
 if __name__ == '__main__':
     df = import_data(features='Datasets/training_set_features.csv',
@@ -168,7 +146,7 @@ if __name__ == '__main__':
     print(ohe_cols)
     df = one_hot_encode(df, colnames=ohe_cols)
 
-    # df = undersample(df)
+
     x_train, x_test, y_train, y_test, train_ids, test_ids = split_dataset(df, test_size=0.3, seed=42)
 
     X_train, Y_train = np.array(x_train), np.array(y_train)
@@ -176,14 +154,14 @@ if __name__ == '__main__':
 
     clf = fit_model(X_train, Y_train)
 
-    # predictions = clf.predict_proba(X_train)
-    # h1n1_preds = predictions[:, 0].tolist()
-    # seasonal_preds = predictions[:, 1].tolist()
-    # print(len(h1n1_preds))
-    # h1n1_true, seasonal_true = (Y_train[:, 0]).tolist(), Y_train[:, 1].tolist()
-    # score = get_scores(h1n1_true, h1n1_preds, seasonal_true, seasonal_preds)
-    # print('Training Accuracy = ', score)
-
+    predictions = clf.predict_proba(X_train)
+    h1n1_preds = predictions[:, 0].tolist()
+    seasonal_preds = predictions[:, 1].tolist()
+    print(len(h1n1_preds))
+    h1n1_true, seasonal_true = (Y_train[:, 0]).tolist(), Y_train[:, 1].tolist()
+    score = get_scores(h1n1_true, h1n1_preds, seasonal_true, seasonal_preds)
+    print('Training Accuracy = ', score)
+    
     model, h1n1_preds, seasonal_preds = make_predictions(clf, X_test)
     h1n1_true, seasonal_true = (Y_test[:, 0]).tolist(), Y_test[:, 1].tolist()
     score = get_scores(h1n1_true, h1n1_preds, seasonal_true, seasonal_preds)
