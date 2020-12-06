@@ -7,7 +7,6 @@ from sklearn.impute import SimpleImputer
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
 from sklearn.multiclass import OneVsRestClassifier
-from sklearn.preprocessing import MultiLabelBinarizer
 from xgboost import XGBClassifier
 
 np.set_printoptions(threshold=sys.maxsize)
@@ -16,16 +15,18 @@ warnings.filterwarnings("ignore")
 np.set_printoptions(threshold=sys.maxsize)
 
 
-def import_data(features, labels, train=True):
+def import_data(features='Datasets/training_set_features.csv',
+                labels='Datasets/training_set_labels.csv', train=True):
     """Import dataset and remove row numbers column
     :return: dataframe
     """
-    df = read_csv(features)
-    df_labels = read_csv(labels)
-    df = concat([df, df_labels.iloc[:, [1, 2]]], axis=1)
 
-    cols = list(df.columns)
-    print("\n".join(cols))
+    df = read_csv(features)
+    if train:
+        df_labels = read_csv(labels)
+        df = concat([df, df_labels.iloc[:, [1, 2]]], axis=1)
+    # cols = list(df.columns)
+    # print("\n".join(cols))
     return df
 
 
@@ -38,7 +39,6 @@ def set_df_values(df):
         # print(f'{col}:{vals}')
     # cols=['h1n1_concern','h1n1_knowledge','behavioral_avoidance','behavioral_face_mask','behavioral_wash_hands',
     # 'behavioral_large_gatherings','behavioral_outside_home','behavioral_touch_face','doctor_recc_h1n1',
-    print('done')
 
 
 def clean_data(df):
@@ -61,6 +61,7 @@ def one_hot_encode(df, colnames):
     """
 
     for col in colnames:
+        # print(col)
         oh_df = get_dummies(df[col], prefix=col, drop_first=True)
         df = concat([oh_df, df], axis=1)
         df = df.drop([col], axis=1)
@@ -73,8 +74,8 @@ def one_hot_encode(df, colnames):
     resp_df = df['respondent_id'].copy()
     df.drop(['respondent_id'], axis=1, inplace=True)
     df = concat([resp_df, df], axis=1)
-    print(list(df.columns))
-    print(df.shape)
+    # print(list(df.columns))
+    # print(df.shape)
     return df
 
 
@@ -110,8 +111,6 @@ def fit_model(X_train, Y_train):
     return clf
 
 
-
-
 def make_predictions(model, x_test):
     """This function makes predictions using the model on the unseen test dataset
     :param y_test: test labels
@@ -134,37 +133,50 @@ def get_scores(h1n1_true, h1n1_preds, seasonal_true, seasonal_preds):
     return average_score
 
 
+def submit(test_df):
+    X_test = test_df.iloc[:, 1:]
+    test_ids = test_df.iloc[:, 0]
+    X_test = np.array(X_test)
+
+    model, h1n1_preds, seasonal_preds = make_predictions(clf, X_test)
+    result_df = concat([test_ids,
+                        DataFrame(h1n1_preds, columns=['h1n1_vaccine']),
+                        DataFrame(seasonal_preds, columns=['seasonal_vaccine'])],
+                       axis=1)
+    result_df.to_csv('Submissions/submission.csv', index=False)
+
+
 if __name__ == '__main__':
-    df = import_data(features='Datasets/training_set_features.csv',
-                     labels='Datasets/training_set_labels.csv')
-    print(list(df.columns))
+    df = import_data(train=True)
+    test_df = import_data(features='Datasets/test_set_features.csv', train=False)
+    # print(list(df.columns))
     cols = list(df.columns)
     set_df_values(df)
     df = clean_data(df)
-    test_df = clean_data(df)
+    test_df = clean_data(test_df)
     ohe_cols = cols[1:36]
-    print(ohe_cols)
+    # print(ohe_cols)
     df = one_hot_encode(df, colnames=ohe_cols)
-
-
-    x_train, x_test, y_train, y_test, train_ids, test_ids = split_dataset(df, test_size=0.3, seed=42)
-
+    test_df = one_hot_encode(test_df, colnames=ohe_cols)
+    x_train, x_val, y_train, y_val, train_ids, val_ids = split_dataset(df, test_size=0.3, seed=42)
     X_train, Y_train = np.array(x_train), np.array(y_train)
-    X_test, Y_test = np.array(x_test), np.array(y_test)
+    X_val, Y_val = np.array(x_val), np.array(y_val)
 
     clf = fit_model(X_train, Y_train)
 
     predictions = clf.predict_proba(X_train)
     h1n1_preds = predictions[:, 0].tolist()
     seasonal_preds = predictions[:, 1].tolist()
-    print(len(h1n1_preds))
+    # print(len(h1n1_preds))
     h1n1_true, seasonal_true = (Y_train[:, 0]).tolist(), Y_train[:, 1].tolist()
     score = get_scores(h1n1_true, h1n1_preds, seasonal_true, seasonal_preds)
     print('Training Accuracy = ', score)
-    
-    model, h1n1_preds, seasonal_preds = make_predictions(clf, X_test)
-    h1n1_true, seasonal_true = (Y_test[:, 0]).tolist(), Y_test[:, 1].tolist()
+
+    model, h1n1_preds, seasonal_preds = make_predictions(clf, X_val)
+    h1n1_true, seasonal_true = (Y_val[:, 0]).tolist(), Y_val[:, 1].tolist()
     score = get_scores(h1n1_true, h1n1_preds, seasonal_true, seasonal_preds)
     print('Validation Accuracy = ', score)
+
+    submit(test_df)
 
     print('Program execution complete!')
