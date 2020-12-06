@@ -102,12 +102,12 @@ def split_dataset(df, test_size, seed):
     return x_train, x_test, y_train, y_test, train_ids, test_ids
 
 
-def fit_model(X_train, Y_train, X_test, Y_test):
+def fit_model(X_train, Y_train):
     clf = OneVsRestClassifier(XGBClassifier(n_jobs=-1,
                                             silent=0,
                                             verbose=True,
                                             # eval_metric = ["auc","error"],
-                                            objective='multi:softmax',
+                                            objective='multi:softprob',
                                             # nclasses=2,
                                             num_class=2,
                                             learning_rate=0.05,
@@ -156,7 +156,6 @@ def get_scores(h1n1_true, h1n1_preds, seasonal_true, seasonal_preds):
     average_score = (h1n1_score + seasonal_score) / 2
     return average_score
 
-
 if __name__ == '__main__':
     df = import_data(features='Datasets/training_set_features.csv',
                      labels='Datasets/training_set_labels.csv')
@@ -175,11 +174,19 @@ if __name__ == '__main__':
     X_train, Y_train = np.array(x_train), np.array(y_train)
     X_test, Y_test = np.array(x_test), np.array(y_test)
 
-    clf = fit_model(X_train, Y_train, X_test, Y_test)
+    clf = fit_model(X_train, Y_train)
+
+    # predictions = clf.predict_proba(X_train)
+    # h1n1_preds = predictions[:, 0].tolist()
+    # seasonal_preds = predictions[:, 1].tolist()
+    # print(len(h1n1_preds))
+    # h1n1_true, seasonal_true = (Y_train[:, 0]).tolist(), Y_train[:, 1].tolist()
+    # score = get_scores(h1n1_true, h1n1_preds, seasonal_true, seasonal_preds)
+    # print('Training Accuracy = ', score)
 
     model, h1n1_preds, seasonal_preds = make_predictions(clf, X_test)
     h1n1_true, seasonal_true = (Y_test[:, 0]).tolist(), Y_test[:, 1].tolist()
     score = get_scores(h1n1_true, h1n1_preds, seasonal_true, seasonal_preds)
-    print(score)
+    print('Validation Accuracy = ', score)
 
     print('Program execution complete!')
