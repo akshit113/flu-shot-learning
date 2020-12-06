@@ -1,5 +1,6 @@
 import sys
 import warnings
+from pickle import dump
 
 import numpy as np
 from pandas import read_csv, concat, DataFrame, get_dummies
@@ -123,7 +124,7 @@ def make_predictions(model, x_test):
     h1n1_preds = predictions[:, 0].tolist()
     seasonal_preds = predictions[:, 1].tolist()
 
-    return model, h1n1_preds, seasonal_preds
+    return h1n1_preds, seasonal_preds
 
 
 def get_scores(h1n1_true, h1n1_preds, seasonal_true, seasonal_preds):
@@ -133,31 +134,35 @@ def get_scores(h1n1_true, h1n1_preds, seasonal_true, seasonal_preds):
     return average_score
 
 
-def submit(test_df):
+def submit(test_df, model):
+    test_df = clean_data(test_df)
+    ohe_cols = cols[1:36]
+    test_df = one_hot_encode(test_df, colnames=ohe_cols)
     X_test = test_df.iloc[:, 1:]
     test_ids = test_df.iloc[:, 0]
     X_test = np.array(X_test)
 
-    model, h1n1_preds, seasonal_preds = make_predictions(clf, X_test)
+    h1n1_preds, seasonal_preds = make_predictions(clf, X_test)
+
     result_df = concat([test_ids,
                         DataFrame(h1n1_preds, columns=['h1n1_vaccine']),
                         DataFrame(seasonal_preds, columns=['seasonal_vaccine'])],
                        axis=1)
+    print(f'Exporting as pickle...')
+    dump(model, open("classifier.pkl", "wb"))
     result_df.to_csv('Submissions/submission.csv', index=False)
 
 
 if __name__ == '__main__':
     df = import_data(train=True)
     test_df = import_data(features='Datasets/test_set_features.csv', train=False)
-    # print(list(df.columns))
     cols = list(df.columns)
     set_df_values(df)
     df = clean_data(df)
-    test_df = clean_data(test_df)
     ohe_cols = cols[1:36]
     # print(ohe_cols)
     df = one_hot_encode(df, colnames=ohe_cols)
-    test_df = one_hot_encode(test_df, colnames=ohe_cols)
+
     x_train, x_val, y_train, y_val, train_ids, val_ids = split_dataset(df, test_size=0.3, seed=42)
     X_train, Y_train = np.array(x_train), np.array(y_train)
     X_val, Y_val = np.array(x_val), np.array(y_val)
@@ -172,11 +177,11 @@ if __name__ == '__main__':
     score = get_scores(h1n1_true, h1n1_preds, seasonal_true, seasonal_preds)
     print('Training Accuracy = ', score)
 
-    model, h1n1_preds, seasonal_preds = make_predictions(clf, X_val)
+    h1n1_preds, seasonal_preds = make_predictions(clf, X_val)
     h1n1_true, seasonal_true = (Y_val[:, 0]).tolist(), Y_val[:, 1].tolist()
     score = get_scores(h1n1_true, h1n1_preds, seasonal_true, seasonal_preds)
     print('Validation Accuracy = ', score)
 
-    submit(test_df)
+    submit(test_df, clf)
 
     print('Program execution complete!')
