@@ -208,10 +208,23 @@ if __name__ == '__main__':
     X_train, Y_train = np.array(x_train), np.array(y_train)
     X_val, Y_val = np.array(x_val), np.array(y_val)
 
-
-    clf = fit_model(X_train, Y_train)
-
-
+    # clf = fit_model(X_train, Y_train)
+    clf = OneVsRestClassifier(estimator=XGBClassifier(base_score=0.5, booster='gbtree',
+                                                      colsample_bylevel=0.5,
+                                                      colsample_bynode=0.3,
+                                                      colsample_bytree=0.5, gamma=0.1,
+                                                      learning_rate=0.2, max_delta_step=0,
+                                                      max_depth=6, min_child_weight=3,
+                                                      missing=None, n_estimators=80,
+                                                      n_jobs=1, nthread=None,
+                                                      objective='binary:logistic',
+                                                      random_state=0, reg_alpha=0,
+                                                      reg_lambda=1, scale_pos_weight=1,
+                                                      seed=None, silent=None,
+                                                      subsample=0.8, verbosity=1),
+                              n_jobs=None)
+    Y_train = Y_train.astype('int')
+    clf.fit(X_train, Y_train)
     predictions = clf.predict_proba(X_train)
     h1n1_preds = predictions[:, 0].tolist()
     seasonal_preds = predictions[:, 1].tolist()
@@ -220,12 +233,27 @@ if __name__ == '__main__':
     score = get_scores(h1n1_true, h1n1_preds, seasonal_true, seasonal_preds)
     print('Training Accuracy = ', score)
 
-
     h1n1_preds, seasonal_preds = make_predictions(clf, X_val)
     h1n1_true, seasonal_true = (Y_val[:, 0]).tolist(), Y_val[:, 1].tolist()
     score = get_scores(h1n1_true, h1n1_preds, seasonal_true, seasonal_preds)
     print('Validation Accuracy = ', score)
-
+    """
+    {
+        Validation Accuracy =  0.8444186622337522
+        
+        {'estimator__subsample': 1, 
+        'estimator__n_estimators': 90, 
+        'estimator__min_child_weight': 5, 
+        'estimator__max_depth': 8, 
+        'estimator__learning_rate': 0.1, 
+        'estimator__gamma': 0.4, 
+        'estimator__colsample_bytree': 0.5, 
+        'estimator__colsample_bynode': 0.3, 
+        'estimator__colsample_bylevel': 0.5}
+        
+    }
+    
+    """
     submit(test_df, clf)
 
     print('Program execution complete!')
