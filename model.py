@@ -105,7 +105,11 @@ def split_dataset(df, test_size, seed):
 
 
 def fit_model(X_train, Y_train):
-    clf = OneVsRestClassifier(XGBClassifier())
+    clf = OneVsRestClassifier(XGBClassifier(subsample=1
+                                            , colsample_bylevel=0.2
+                                            , colsample_bytree=0.2
+                                            , colsample_bynode=0.7
+                                            , min_child_weight=3))
     Y_train = Y_train.astype('int')
     clf.fit(X_train, Y_train)
     print('')
