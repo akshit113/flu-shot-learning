@@ -6,7 +6,7 @@ import numpy as np
 from pandas import read_csv, concat, DataFrame, get_dummies
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import roc_auc_score
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from sklearn.multiclass import OneVsRestClassifier
 from xgboost import XGBClassifier
 
@@ -105,15 +105,52 @@ def split_dataset(df, test_size, seed):
 
 
 def fit_model(X_train, Y_train):
-    clf = OneVsRestClassifier(XGBClassifier(subsample=1
-                                            , colsample_bylevel=0.2
-                                            , colsample_bytree=0.2
-                                            , colsample_bynode=0.7
-                                            , min_child_weight=3))
+    model_to_set = OneVsRestClassifier(XGBClassifier())
+
+    parameters = {
+        'estimator__colsample_bylevel': [0.1, 0.2],
+        'estimator__colsample_bytree': [0.1, 0.2],
+        'estimator__colsample_bynode': [0.1, 0.2],
+        'estimator__max_depth': [6, 8, 10, 12, 14],
+        'estimator__n_estimators': [200, 230, 340, 470, 580, 660],
+        'estimator__min_child_weight': [1, 2, 3, 5, 7]
+
+    }
+    print(model_to_set.get_params())
+
+    model_tuning = RandomizedSearchCV(estimator=model_to_set,
+                                      param_distributions=parameters,
+                                      n_jobs=-1,
+                                      n_iter=15,
+                                      cv=5,
+                                      verbose=1)
+
+    # model_tunning = GridSearchCV(model_to_set,
+    #                              param_grid=parameters,
+    #                              n_jobs=-1,
+    #                              cv=5,
+    #                              verbose=1)
+    #
     Y_train = Y_train.astype('int')
-    clf.fit(X_train, Y_train)
-    print('')
-    return clf
+    model_tuning.fit(X_train, Y_train)
+    #
+    print(model_tuning.best_score_)
+    print(model_tuning.best_params_)
+    print('test')
+
+    return model_tuning
+
+
+#
+# clf = OneVsRestClassifier(XGBClassifier(subsample=1
+#                                         , colsample_bylevel=0.2
+#                                         , colsample_bytree=0.2
+#                                         , colsample_bynode=0.7
+#                                         , min_child_weight=3))
+# Y_train = Y_train.astype('int')
+# clf.fit(X_train, Y_train)
+# print('')
+# return clf
 
 
 def make_predictions(model, x_test):
@@ -171,7 +208,9 @@ if __name__ == '__main__':
     X_train, Y_train = np.array(x_train), np.array(y_train)
     X_val, Y_val = np.array(x_val), np.array(y_val)
 
+
     clf = fit_model(X_train, Y_train)
+
 
     predictions = clf.predict_proba(X_train)
     h1n1_preds = predictions[:, 0].tolist()
@@ -180,6 +219,7 @@ if __name__ == '__main__':
     h1n1_true, seasonal_true = (Y_train[:, 0]).tolist(), Y_train[:, 1].tolist()
     score = get_scores(h1n1_true, h1n1_preds, seasonal_true, seasonal_preds)
     print('Training Accuracy = ', score)
+
 
     h1n1_preds, seasonal_preds = make_predictions(clf, X_val)
     h1n1_true, seasonal_true = (Y_val[:, 0]).tolist(), Y_val[:, 1].tolist()
