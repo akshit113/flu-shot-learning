@@ -208,21 +208,24 @@ if __name__ == '__main__':
     X_train, Y_train = np.array(x_train), np.array(y_train)
     X_val, Y_val = np.array(x_val), np.array(y_val)
 
+    """
+     'estimator__learning_rate': 0.15, 
+     'estimator__gamma': 0.5, 
+     
+    """
     # clf = fit_model(X_train, Y_train)
-    clf = OneVsRestClassifier(estimator=XGBClassifier(base_score=0.5, booster='gbtree',
-                                                      colsample_bylevel=0.5,
-                                                      colsample_bynode=0.3,
-                                                      colsample_bytree=0.5, gamma=0.1,
-                                                      learning_rate=0.2, max_delta_step=0,
-                                                      max_depth=6, min_child_weight=3,
-                                                      missing=None, n_estimators=80,
-                                                      n_jobs=1, nthread=None,
-                                                      objective='binary:logistic',
-                                                      random_state=0, reg_alpha=0,
-                                                      reg_lambda=1, scale_pos_weight=1,
-                                                      seed=None, silent=None,
-                                                      subsample=0.8, verbosity=1),
-                              n_jobs=None)
+    clf = OneVsRestClassifier(estimator=XGBClassifier(colsample_bylevel=0.5,
+                                                      colsample_bynode=0.5,
+                                                      colsample_bytree=0.5,
+                                                      gamma=0.5,
+                                                      learning_rate=0.15,
+                                                      n_estimators=90,
+                                                      subsample=0.6,
+                                                      max_depth=6,
+                                                      reg_alpha=0.4,
+                                                      reg_lambda=1,
+                                                      min_child_weight=7,
+                                                      n_jobs=-1))
     Y_train = Y_train.astype('int')
     clf.fit(X_train, Y_train)
     predictions = clf.predict_proba(X_train)
