@@ -38,7 +38,7 @@ def fit_model(x_train, y_train):
                     'hhs_geo_region', 'census_msa', 'household_adults', 'household_children', 'employment_industry',
                     'employment_occupation']
     ovr = OneVsRestClassifier(estimator=CatBoostClassifier(iterations=230
-                                                           , learning_rate=0.15
+                                                           , learning_rate=0.05
 
                                                            , cat_features=cat_features
                                                            , random_state=42))
@@ -56,7 +56,7 @@ if __name__ == '__main__':
     cols = list(df.columns)
     set_df_values(df)
     df = clean_data(df)
-    x_train, x_val, y_train, y_val, train_ids, val_ids = split_dataset(df, test_size=0.2, seed=42)
+    x_train, x_val, y_train, y_val, train_ids, val_ids = split_dataset(df, test_size=0.05, seed=42)
     x_train, y_train = x_train.astype(str), y_train.astype(int)
     x_val, y_val = x_val.astype(str), y_val.astype(int)
 
@@ -73,6 +73,8 @@ if __name__ == '__main__':
 
     """
     0.8515016459915379 - epochs = 230, learning_rate=0.1
+    0.8665831809413866 - epochs = 230, learning_rate=0.15, test_size = 0.05
+    
     """
     submit(test_df, model)
     print('done')
