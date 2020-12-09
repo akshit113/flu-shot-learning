@@ -38,13 +38,15 @@ def fit_model(x_train, y_train):
                     'hhs_geo_region', 'census_msa', 'household_adults', 'household_children', 'employment_industry',
                     'employment_occupation']
     ovr = OneVsRestClassifier(estimator=CatBoostClassifier(iterations=230
+                                                           , learning_rate=0.15
+
                                                            , cat_features=cat_features
-                                                           , learning_rate=0.1
                                                            , random_state=42))
     ovr.fit(x_train, y_train)
     params = ovr.get_params()
-    print(params)
-    print('done')
+    print('\nHyperparameters:')
+    for key, value in params.items():
+        print(f'{key[11:]} : {value}')
     return ovr
 
 
