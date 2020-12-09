@@ -3,7 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 /.idea
-/.catboost_info
+catboost_info/
 # C extensions
 *.so
 
