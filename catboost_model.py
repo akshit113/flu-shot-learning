@@ -3,7 +3,7 @@ from model import import_data, clean_data, one_hot_encode, split_dataset, set_df
 
 
 def fit_model(X_train,Y_train):
-    
+
 
 
 
