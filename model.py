@@ -108,12 +108,13 @@ def fit_model(X_train, Y_train):
     model_to_set = OneVsRestClassifier(XGBClassifier())
 
     parameters = {
-        'estimator__colsample_bylevel': [0.1, 0.2],
-        'estimator__colsample_bytree': [0.1, 0.2],
-        'estimator__colsample_bynode': [0.1, 0.2],
-        'estimator__max_depth': [6, 8, 10, 12, 14],
-        'estimator__n_estimators': [200, 230, 340, 470, 580, 660],
-        'estimator__min_child_weight': [1, 2, 3, 5, 7]
+        'estimator__colsample_bylevel': [0.7, 0.8],
+        'estimator__colsample_bytree': [0.7, 0.8],
+        'estimator__colsample_bynode': [0.7, 0.8],
+        'estimator__subsample': [0.7, 0.8]
+        # 'estimator__max_depth': [6, 8, 10, 12, 14],
+        # 'estimator__n_estimators': [100],
+        # 'estimator__min_child_weight': [1, 2, 3, 5, 7]
 
     }
     print(model_to_set.get_params())
@@ -209,25 +210,24 @@ if __name__ == '__main__':
     X_val, Y_val = np.array(x_val), np.array(y_val)
 
     """
-     'estimator__learning_rate': 0.15, 
-     'estimator__gamma': 0.5, 
+    
      
     """
-    # clf = fit_model(X_train, Y_train)
-    clf = OneVsRestClassifier(estimator=XGBClassifier(colsample_bylevel=0.5,
-                                                      colsample_bynode=0.5,
-                                                      colsample_bytree=0.5,
-                                                      gamma=0.5,
-                                                      learning_rate=0.15,
-                                                      n_estimators=90,
-                                                      subsample=0.6,
-                                                      max_depth=6,
-                                                      reg_alpha=0.4,
-                                                      reg_lambda=1,
-                                                      min_child_weight=7,
-                                                      n_jobs=-1))
-    Y_train = Y_train.astype('int')
-    clf.fit(X_train, Y_train)
+    clf = fit_model(X_train, Y_train)
+    # clf = OneVsRestClassifier(estimator=XGBClassifier(colsample_bylevel=0.5,
+    #                                                   colsample_bynode=0.5,
+    #                                                   colsample_bytree=0.5,
+    #                                                   gamma=0.5,
+    #                                                   learning_rate=0.15,
+    #                                                   n_estimators=90,
+    #                                                   subsample=0.6,
+    #                                                   max_depth=6,
+    #                                                   reg_alpha=0.4,
+    #                                                   reg_lambda=1,
+    #                                                   min_child_weight=7,
+    #                                                   n_jobs=-1))
+    # Y_train = Y_train.astype('int')
+    # clf.fit(X_train, Y_train)
     predictions = clf.predict_proba(X_train)
     h1n1_preds = predictions[:, 0].tolist()
     seasonal_preds = predictions[:, 1].tolist()
@@ -242,18 +242,18 @@ if __name__ == '__main__':
     print('Validation Accuracy = ', score)
     """
     {
-        Validation Accuracy =  0.8444186622337522
-        
-        {'estimator__subsample': 1, 
+        Validation Accuracy =  0.8449607232853948
+        'estimator__subsample': 0.6, 
+        'estimator__reg_lambda': 1, 
+        'estimator__reg_alpha': 0.4, 
         'estimator__n_estimators': 90, 
-        'estimator__min_child_weight': 5, 
-        'estimator__max_depth': 8, 
-        'estimator__learning_rate': 0.1, 
-        'estimator__gamma': 0.4, 
+        estimator__min_child_weight': 7, 
+        'estimator__max_depth': 6, 
+        'estimator__learning_rate': 0.15, 
+        'estimator__gamma': 0.5, 
         'estimator__colsample_bytree': 0.5, 
-        'estimator__colsample_bynode': 0.3, 
-        'estimator__colsample_bylevel': 0.5}
-        
+        'estimator__colsample_bynode': 0.5, 
+        'estimator__colsample_bylevel': 0.5
     }
     
     """
