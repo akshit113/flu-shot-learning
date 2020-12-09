@@ -193,6 +193,7 @@ def submit(test_df, model):
     print(f'Exporting as pickle...')
     dump(model, open("classifier.pkl", "wb"))
     result_df.to_csv('Submissions/submission.csv', index=False)
+    print('done')
 
 
 if __name__ == '__main__':
