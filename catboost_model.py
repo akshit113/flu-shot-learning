@@ -4,6 +4,7 @@ import numpy as np
 from catboost import CatBoostClassifier
 from model import import_data, clean_data, split_dataset, set_df_values, make_predictions, get_scores
 from pandas import concat, DataFrame
+from sklearn.model_selection import RandomizedSearchCV
 from sklearn.multiclass import OneVsRestClassifier
 
 
@@ -26,8 +27,8 @@ def submit(test_df, model):
 
 
 def fit_model(x_train, y_train):
-    print('test')
-    print(CatBoostClassifier())
+    x_train, y_train = x_train.astype(str), y_train.astype(int)
+
     cat_features = ['h1n1_concern', 'h1n1_knowledge', 'behavioral_antiviral_meds', 'behavioral_avoidance',
                     'behavioral_face_mask', 'behavioral_wash_hands', 'behavioral_large_gatherings',
                     'behavioral_outside_home', 'behavioral_touch_face', 'doctor_recc_h1n1', 'doctor_recc_seasonal',
@@ -37,17 +38,28 @@ def fit_model(x_train, y_train):
                     'education', 'race', 'sex', 'income_poverty', 'marital_status', 'rent_or_own', 'employment_status',
                     'hhs_geo_region', 'census_msa', 'household_adults', 'household_children', 'employment_industry',
                     'employment_occupation']
-    ovr = OneVsRestClassifier(estimator=CatBoostClassifier(iterations=230
-                                                           , learning_rate=0.05
+    model_to_set = OneVsRestClassifier(CatBoostClassifier(cat_features=cat_features))
+    # model = CatBoostClassifier(cat_features=cat_features)
+    print(model_to_set.get_params())
+    parameters = {'estimator__depth': [5, 10],
+                  'estimator__learning_rate': [0.05, 0.1],
+                  'estimator__iterations': [50, 100]
+                  }
 
-                                                           , cat_features=cat_features
-                                                           , random_state=42))
-    ovr.fit(x_train, y_train)
-    params = ovr.get_params()
-    print('\nHyperparameters:')
-    for key, value in params.items():
-        print(f'{key[11:]} : {value}')
-    return ovr
+    randm = RandomizedSearchCV(estimator=model_to_set, param_distributions=parameters,
+                               cv=2, n_iter=10, n_jobs=-1)
+    x_train = x_train.astype(str)
+    randm.fit(x_train, y_train)
+
+    # Results from Random Search
+    print("\n========================================================")
+    print(" Results from Random Search ")
+    print("========================================================")
+    print("\n The best estimator across ALL searched params:\n", randm.best_estimator_)
+    print("\n The best score across ALL searched params:\n", randm.best_score_)
+    print("\n The best parameters across ALL searched params:\n", randm.best_params_)
+    print("\n ========================================================")
+    return randm
 
 
 if __name__ == '__main__':
@@ -56,7 +68,7 @@ if __name__ == '__main__':
     cols = list(df.columns)
     set_df_values(df)
     df = clean_data(df)
-    x_train, x_val, y_train, y_val, train_ids, val_ids = split_dataset(df, test_size=0.01, seed=42)
+    x_train, x_val, y_train, y_val, train_ids, val_ids = split_dataset(df, test_size=0.3, seed=42)
     x_train, y_train = x_train.astype(str), y_train.astype(int)
     x_val, y_val = x_val.astype(str), y_val.astype(int)
 
