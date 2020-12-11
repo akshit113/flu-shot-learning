@@ -45,7 +45,9 @@ def fit_model(x_train, y_train, x_val):
     params['boosting_type'] = 'gbdt'  # GradientBoostingDecisionTree
     params['objective'] = 'binary'  # Binary target feature
     params['metric'] = 'binary_logloss'  # metric for binary classification
-    params['max_depth'] = 10
+    params['max_depth'] = 100
+    # params['max_bin'] = 40
+    # params['num_iterations'] = 100
     # train the model
     h1n1_clf = lgb.train(params, h1n1_train, num_boost_round=100)  # train the model on 100 epocs
     h1n1_preds = h1n1_clf.predict(x_val)
