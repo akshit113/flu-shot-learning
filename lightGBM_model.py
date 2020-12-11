@@ -76,5 +76,5 @@ if __name__ == '__main__':
     validation_score = get_scores(h1n1_true, h1n1_preds, seasonal_true, seasonal_preds)
     print(f'Validation Accuracy: {validation_score}')
 
-    # submit(test_df, h1n1_clf, seasonal_clf)
+    submit(test_df, h1n1_clf, seasonal_clf)
     print('done')
