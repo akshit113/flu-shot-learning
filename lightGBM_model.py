@@ -47,10 +47,10 @@ def fit_model(x_train, y_train, x_val):
     params['metric'] = 'binary_logloss'  # metric for binary classification
     params['max_depth'] = 10
     # train the model
-    h1n1_clf = lgb.train(params, h1n1_train, 100)  # train the model on 100 epocs
+    h1n1_clf = lgb.train(params, h1n1_train, num_boost_round=100)  # train the model on 100 epocs
     h1n1_preds = h1n1_clf.predict(x_val)
 
-    seasonal_clf = lgb.train(params, seasonal_train, 100)
+    seasonal_clf = lgb.train(params, seasonal_train, num_boost_round=400)
     seasonal_preds = seasonal_clf.predict(x_val)
 
     return h1n1_preds, seasonal_preds, h1n1_clf, seasonal_clf
@@ -68,7 +68,7 @@ if __name__ == '__main__':
     for col in cols[1:-2]:
         df[col] = df[col].astype('category')
 
-    x_train, x_val, y_train, y_val, train_ids, val_ids = split_dataset(df, test_size=0.1, seed=42)
+    x_train, x_val, y_train, y_val, train_ids, val_ids = split_dataset(df, test_size=0.01, seed=42)
 
     h1n1_preds, seasonal_preds, h1n1_clf, seasonal_clf = fit_model(x_train, y_train, x_val)
 
