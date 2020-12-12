@@ -163,8 +163,13 @@ def make_predictions(model, x_test):
     """
     predictions = model.predict_proba(x_test)
     # labels = (np.where(predictions < 0.5, 0, 1)).flatten()
-    h1n1_preds = predictions[:, 0].tolist()
-    seasonal_preds = predictions[:, 1].tolist()
+    if isinstance(predictions, list):
+        h1n1_preds = predictions[0]
+        seasonal_preds = predictions[1]
+
+    else:
+        h1n1_preds = predictions[:, 0].tolist()
+        seasonal_preds = predictions[:, 1].tolist()
 
     return h1n1_preds, seasonal_preds
 
@@ -206,7 +211,7 @@ if __name__ == '__main__':
     # print(ohe_cols)
     df = one_hot_encode(df, colnames=ohe_cols)
 
-    x_train, x_val, y_train, y_val, train_ids, val_ids = split_dataset(df, test_size=0.3, seed=42)
+    x_train, x_val, y_train, y_val, train_ids, val_ids = split_dataset(df, test_size=0.9, seed=42)
     X_train, Y_train = np.array(x_train), np.array(y_train)
     X_val, Y_val = np.array(x_val), np.array(y_val)
 
