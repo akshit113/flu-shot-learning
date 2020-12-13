@@ -20,15 +20,18 @@ if __name__ == '__main__':
     X_train, Y_train = np.array(x_train), np.array(y_train)
     X_val, Y_val = np.array(x_val), np.array(y_val)
 
-    param_grid = {'C': [0.001, 0.01, 0.1, 1, 10, 100, 1000]}
+    param_grid = {'C': [0.1]}
     model_to_set = OneVsRestClassifier(LogisticRegression(penalty='l2'))
     parameters = {
-        "estimator__C": [0.001, 0.01, 0.1, 1, 10, 100, 1000]
+        "estimator__C": [0.1, 1],
+        "estimator__max_iter": [1000, 5000, 10000, 2500, 4000],
+        "estimator__solver": ['saga']
     }
 
-    model_tunning = GridSearchCV(model_to_set, param_grid=parameters, verbose=3)
+    model_tunning = GridSearchCV(model_to_set, cv=5, param_grid=parameters, verbose=3)
     y_train = y_train.astype('int')
     model_tunning.fit(x_train, y_train)
+
     print(model_tunning.best_score_)
     print(model_tunning.best_params_)
 
@@ -40,5 +43,3 @@ if __name__ == '__main__':
 
     score = get_scores(h1n1_true, h1n1_preds, seasonal_true, seasonal_preds)
     print('Validation Accuracy = ', score)
-
-    
