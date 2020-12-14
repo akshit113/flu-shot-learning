@@ -1,10 +1,11 @@
+import matplotlib.pyplot as plt
 import numpy as np
 from keras import Sequential
 from keras.layers import Dense, Dropout
 from keras.optimizers import SGD
 from model import import_data, clean_data, split_dataset, set_df_values, one_hot_encode
-import matplotlib.pyplot as plt
 from sklearn.metrics import roc_auc_score
+from tensorflow.python.keras.callbacks import EarlyStopping
 
 
 def get_model(input_size, output_size, magic='tanh'):
@@ -67,11 +68,14 @@ def fit_and_evaluate(model, x_train, y_train, x_test, y_test, batch_size, epochs
     :param epochs: number of times the entire dataset is passed through the network
     :return: tuple of validation_accuracy and validation_loss
     """
-    history = model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, validation_data=(x_test, y_test))
+
+    es_callback = EarlyStopping(monitor='val_categorical_accuracy', patience=3)
+    history = model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs,
+                        validation_data=(x_test, y_test), callbacks=[es_callback])
     test_loss, test_acc = model.evaluate(x_test, y_test, verbose=2)
     print('Test accuracy:', test_acc)
     print('Test Loss:', test_loss)
-    plot(history)
+    # plot(history)
     return test_acc, test_loss
 
 
@@ -113,11 +117,11 @@ if __name__ == '__main__':
     # print(ohe_cols)
     df = one_hot_encode(df, colnames=ohe_cols)
 
-    x_train, x_val, y_train, y_val, train_ids, val_ids = split_dataset(df, test_size=0.2, seed=42)
+    x_train, x_val, y_train, y_val, train_ids, val_ids = split_dataset(df, test_size=0.01, seed=42)
     # X_train, Y_train = np.array(x_train), np.array(y_train)
     # X_val, Y_val = np.array(x_val), np.array(y_val)
 
-    model = get_model(input_size=118, output_size=2,magic='tanh')
+    model = get_model(input_size=118, output_size=2, magic='tanh')
     x_train = np.asarray(x_train).astype(np.float32)
     y_train = np.asarray(y_train).astype(np.float32)
     x_val = np.asarray(x_val).astype(np.float32)
@@ -134,6 +138,5 @@ if __name__ == '__main__':
     h1n1_true, seasonal_true = y_val[:, 0].tolist(), y_val[:, 1].tolist()
     validation_score = get_scores(h1n1_true, h1n1_preds, seasonal_true, seasonal_preds)
     print(f'Validation Accuracy: {validation_score}')
-
 
     print('program execution complete')
