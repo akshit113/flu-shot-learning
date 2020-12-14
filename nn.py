@@ -1,8 +1,9 @@
 import numpy as np
 from keras import Sequential
-from keras.layers import Dense
+from keras.layers import Dense, Dropout
 from keras.optimizers import SGD
 from model import import_data, clean_data, split_dataset, set_df_values, one_hot_encode
+import matplotlib.pyplot as plt
 from sklearn.metrics import roc_auc_score
 
 
@@ -20,11 +21,17 @@ def get_model(input_size, output_size, magic='tanh'):
     # activity_regularizer=l1(1e-5)))
     # mlmodel.add(LeakyReLU(alpha=0.1))
     mlmodel.add(Dense(64, activation=magic))
+    mlmodel.add(Dropout(0.4))
     mlmodel.add(Dense(128, activation=magic))
+    mlmodel.add(Dropout(0.4))
     mlmodel.add(Dense(128, activation=magic))
+    mlmodel.add(Dropout(0.4))
     mlmodel.add(Dense(128, activation=magic))
+    mlmodel.add(Dropout(0.4))
     mlmodel.add(Dense(254, activation=magic))
+    mlmodel.add(Dropout(0.4))
     mlmodel.add(Dense(324, activation=magic))
+    mlmodel.add(Dropout(0.4))
     mlmodel.add(Dense(512, activation=magic))
 
     mlmodel.add(Dense(output_size, activation='sigmoid'))
@@ -32,8 +39,20 @@ def get_model(input_size, output_size, magic='tanh'):
     # Setting optimizer
     # mlmodel.compile(loss="binary_crossentropy", optimizer='adam', metrics=['accuracy'])
     opt = SGD(lr=0.001)
-    mlmodel.compile(loss="binary_crossentropy", optimizer='adam', metrics=['binary_accuracy'])
+    mlmodel.compile(loss="binary_crossentropy", optimizer='adam', metrics=['categorical_accuracy'])
     return mlmodel
+
+
+def plot(history):
+    print(history.history.keys())
+    # summarize history for accuracy
+    plt.plot(history.history['categorical_accuracy'])
+    plt.plot(history.history['val_categorical_accuracy'])
+    plt.title('model categorical_accuracy')
+    plt.ylabel('categorical_accuracy')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'test'], loc='upper left')
+    plt.show()
 
 
 def fit_and_evaluate(model, x_train, y_train, x_test, y_test, batch_size, epochs):
@@ -48,10 +67,11 @@ def fit_and_evaluate(model, x_train, y_train, x_test, y_test, batch_size, epochs
     :param epochs: number of times the entire dataset is passed through the network
     :return: tuple of validation_accuracy and validation_loss
     """
-    model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, validation_data=(x_test, y_test))
+    history = model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, validation_data=(x_test, y_test))
     test_loss, test_acc = model.evaluate(x_test, y_test, verbose=2)
     print('Test accuracy:', test_acc)
     print('Test Loss:', test_loss)
+    plot(history)
     return test_acc, test_loss
 
 
@@ -93,17 +113,17 @@ if __name__ == '__main__':
     # print(ohe_cols)
     df = one_hot_encode(df, colnames=ohe_cols)
 
-    x_train, x_val, y_train, y_val, train_ids, val_ids = split_dataset(df, test_size=0.3, seed=42)
+    x_train, x_val, y_train, y_val, train_ids, val_ids = split_dataset(df, test_size=0.2, seed=42)
     # X_train, Y_train = np.array(x_train), np.array(y_train)
     # X_val, Y_val = np.array(x_val), np.array(y_val)
 
-    model = get_model(input_size=118, output_size=2)
+    model = get_model(input_size=118, output_size=2,magic='tanh')
     x_train = np.asarray(x_train).astype(np.float32)
     y_train = np.asarray(y_train).astype(np.float32)
     x_val = np.asarray(x_val).astype(np.float32)
     y_val = np.asarray(y_val).astype(np.float32)
 
-    test_acc, test_loss = fit_and_evaluate(model, x_train, y_train, x_val, y_val, batch_size=64, epochs=1)
+    test_acc, test_loss = fit_and_evaluate(model, x_train, y_train, x_val, y_val, batch_size=1024, epochs=100)
 
     h1n1_preds, seasonal_preds = make_predictions(model, x_train)
     h1n1_true, seasonal_true = y_train[:, 0].tolist(), y_train[:, 1].tolist()
@@ -114,5 +134,6 @@ if __name__ == '__main__':
     h1n1_true, seasonal_true = y_val[:, 0].tolist(), y_val[:, 1].tolist()
     validation_score = get_scores(h1n1_true, h1n1_preds, seasonal_true, seasonal_preds)
     print(f'Validation Accuracy: {validation_score}')
+
 
     print('program execution complete')
