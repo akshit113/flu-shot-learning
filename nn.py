@@ -3,13 +3,13 @@ import numpy as np
 from keras import Sequential
 from keras.layers import Dense, Dropout
 from keras.optimizers import SGD, Adam
+from kerastuner import RandomSearch
 from model import import_data, clean_data, split_dataset, set_df_values, one_hot_encode
 from pandas import concat, DataFrame
 from sklearn.metrics import roc_auc_score
-from tensorflow.python.keras.optimizer_v2.learning_rate_schedule import ExponentialDecay
 
 
-def get_model(input_size, output_size, magic='tanh'):
+def get_model(input_size, output_size, magic='tanh', dropout=0.2):
     """This function creates a baseline feedforward neural network with of given input size and output size
         using magic activation function.
     :param input_size: number of columns in x_train
@@ -18,22 +18,22 @@ def get_model(input_size, output_size, magic='tanh'):
     :return:Sequential model
     """
     mlmodel = Sequential()
-    mlmodel.add(Dense(input_size, input_dim=input_size, activation=magic))
+    mlmodel.add(Dense(128, input_dim=input_size, activation=magic))
     # kernel_regularizer=l1_l2(l1=1e-5, l2=1e-4), bias_regularizer=l2(1e-4),
     # activity_regularizer=l1(1e-5)))
     # mlmodel.add(LeakyReLU(alpha=0.1))
-    mlmodel.add(Dense(64, activation=magic))
-    mlmodel.add(Dropout(0.2))
     mlmodel.add(Dense(128, activation=magic))
-    mlmodel.add(Dropout(0.2))
-    mlmodel.add(Dense(128, activation=magic))
-    mlmodel.add(Dropout(0.2))
-    mlmodel.add(Dense(128, activation=magic))
-    mlmodel.add(Dropout(0.2))
-    mlmodel.add(Dense(254, activation=magic))
-    mlmodel.add(Dropout(0.2))
+    mlmodel.add(Dropout(dropout))
+    mlmodel.add(Dense(216, activation=magic))
+    mlmodel.add(Dropout(dropout))
+    mlmodel.add(Dense(423, activation=magic))
+    mlmodel.add(Dropout(dropout))
+    mlmodel.add(Dense(545, activation=magic))
+    mlmodel.add(Dropout(dropout))
+    mlmodel.add(Dense(987, activation=magic))
+    mlmodel.add(Dropout(dropout))
     mlmodel.add(Dense(324, activation=magic))
-    mlmodel.add(Dropout(0.2))
+    mlmodel.add(Dropout(dropout))
     mlmodel.add(Dense(512, activation=magic))
 
     mlmodel.add(Dense(output_size, activation='sigmoid'))
@@ -44,6 +44,22 @@ def get_model(input_size, output_size, magic='tanh'):
     opt = Adam(learning_rate=0.0005)
     mlmodel.compile(loss="binary_crossentropy", optimizer=opt, metrics=['binary_accuracy'])
     return mlmodel
+
+
+def get_tuned_model(hp, input_size=118, output_size=2, magic='tanh'):
+    model = Sequential()
+    model.add(Dense(128, input_dim=input_size, activation=magic))
+    for i in range(hp.Int('num_layers', 2, 20)):
+        model.add(Dense(units=hp.Int('units_' + str(i),
+                                     min_value=32,
+                                     max_value=512,
+                                     step=32),
+                        activation=magic))
+    model.add(Dense(output_size, activation='sigmoid'))
+    model.compile(optimizer=Adam(hp.Choice('learning_rate', [1e-2, 1e-3, 1e-4])),
+                  loss="binary_crossentropy",
+                  metrics=['binary_accuracy'])
+    return model
 
 
 def submit(test_df, model):
@@ -147,11 +163,26 @@ if __name__ == '__main__':
     # X_train, Y_train = np.array(x_train), np.array(y_train)
     # X_val, Y_val = np.array(x_val), np.array(y_val)
 
-    model = get_model(input_size=118, output_size=2, magic='tanh')
+    model = get_model(input_size=118, output_size=2, magic='tanh', dropout=0.5)
+    tuner = RandomSearch(get_tuned_model,
+                         objective='val_binary_accuracy',
+                         max_trials=7,
+                         executions_per_trial=4,
+                         directory='project',
+                         project_name='Air Quality Index')
+
+    print(tuner.search_space_summary())
+
     x_train = np.asarray(x_train).astype(np.float32)
     y_train = np.asarray(y_train).astype(np.float32)
     x_val = np.asarray(x_val).astype(np.float32)
     y_val = np.asarray(y_val).astype(np.float32)
+
+    tuner.search(x_train, y_train,
+                 epochs=5,
+                 validation_data=(x_val, y_val))
+
+    print(tuner.results_summary(num_trials=3))  # 3 best models
 
     test_acc, test_loss = fit_and_evaluate(model, x_train, y_train, x_val, y_val, batch_size=8192, epochs=100)
 
